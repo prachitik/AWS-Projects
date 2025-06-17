@@ -1,11 +1,23 @@
-## This project corresponds to the AWS Cloud Projects for beginner by https://www.linkedin.com/in/nealkdavis/.
-#Project 1 - Create a Web Server on Amazon EC2
+## Project inspired by [Neal K. Davis](https://www.linkedin.com/in/nealkdavis/) - AWS Cloud projects for beginner.
+## Project 1 - **Create a Web Server on Amazon EC2**
 - Skill level: Beginner
 - Description: In this project, you will deploy an Apache Web server running on Amazon EC2 instance
 - AWS Services Used: Amazon EC2
 
+
+> 🚀 Deploy a custom Apache web server on Amazon EC2 with automatic provisioning via User Data.
+![Project Screenshot](./apache-homepage.png)
 ---
 
+## 🌐 Project Preview
+
+A fully functional, automatically deployed web server running on Amazon EC2.  
+Styled with HTML & CSS, and installed via a Bash script in EC2's user data.
+
+🖥️ **Live Demo:** Open your EC2 Public IP in a browser  
+🛠️ **Tech Stack:** AWS EC2 · Apache · Bash · Amazon Linux 2023 
+
+---
 ## 🛠️ Step followed -
 ### **Step 1. Launch an Amazon EC2 instance**
 1. Sign in to **AWS management Console**
@@ -24,7 +36,7 @@
 ### **Step 2. Add User Data Script**
 1. Scroll to **Advanced Details** section and paste the contents of `user-data.sh`.
 
-### **Step 3. Launch and Access
+### **Step 3. Launch and Access**
 1. Once instance is running, visit:
     `http://<your-ec2-public-ip>`
 2. You should see a styled welcome page
@@ -43,9 +55,4 @@ Optional: The HTML file that is served by Apache. Already embedded in `user-data
 ## 👩‍💻 Author
 
 Prachiti Kulkarni  
-Deployed using AWS + Linux + Apache  
-
-
-
-
-
+Deployed using AWS + Linux + Apache
