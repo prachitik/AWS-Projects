@@ -116,3 +116,160 @@ Metadata stored successfully in DynamoDB.
 
 - Enable user uploads through a web interface
 
+Step-by-Step Project Setup
+   Step 1: Create S3 Buckets
+
+Create two buckets in the same region:
+
+image-input-bucket
+
+image-output-bucket
+
+Keep Block all public access enabled.
+
+   Step 2: Create IAM Role for Lambda
+
+Create a role LambdaExecutionRole with the following policies:
+
+AmazonS3FullAccess
+
+AmazonDynamoDBFullAccess
+
+CloudWatchLogsFullAccess
+
+   Step 3: Create DynamoDB Table
+
+Create a table:
+
+Name: ImageMetadata
+
+Partition key: image_name (String)
+
+Billing mode: On-demand
+
+   Step 4: Build and Publish Pillow Lambda Layer
+
+SSH into your EC2 instance (Amazon Linux 2023):
+
+mkdir lambda_pillow_layer && cd lambda_pillow_layer
+pip install pillow==10.2.0 -t python/
+zip -r pillow_layer.zip python
+aws lambda publish-layer-version \
+  --layer-name pillow-layer \
+  --zip-file fileb://pillow_layer.zip \
+  --compatible-runtimes python3.9 \
+  --region us-east-2
+
+
+Copy the Layer ARN from the output.
+
+  Step 5: Create the Lambda Function
+
+Name: image-processor-lambda
+
+Runtime: Python 3.9
+
+Execution Role: LambdaExecutionRole
+
+Layer: Add your published Pillow layer
+
+Lambda Function Code:
+
+import boto3
+import os
+from PIL import Image
+from io import BytesIO
+import json
+import time
+
+s3 = boto3.client('s3')
+dynamodb = boto3.resource('dynamodb')
+table = dynamodb.Table('ImageMetadata')
+
+def lambda_handler(event, context):
+    try:
+        print("Received event:", json.dumps(event))
+        record = event['Records'][0]
+        bucket_name = record['s3']['bucket']['name']
+        object_key = record['s3']['object']['key']
+        
+        print(f"Processing file: {object_key} from bucket: {bucket_name}")
+        
+        # Download image
+        response = s3.get_object(Bucket=bucket_name, Key=object_key)
+        image_data = response['Body'].read()
+        image = Image.open(BytesIO(image_data))
+        original_size = image.size
+        print(f"Original size: {original_size}")
+        
+        # Resize
+        image.thumbnail((128, 128))
+        processed_key = f"processed/thumb_{os.path.basename(object_key)}"
+        print(f"Processed image path: {processed_key}")
+        
+        # Upload to output bucket
+        output_bucket = "image-output-bucket"
+        buffer = BytesIO()
+        image.save(buffer, format=image.format)
+        buffer.seek(0)
+        s3.put_object(Bucket=output_bucket, Key=processed_key, Body=buffer)
+        print(f"Processed image uploaded to {output_bucket}/{processed_key}")
+        
+        # Store metadata
+        table.put_item(Item={
+            'image_name': os.path.basename(object_key),
+            'bucket': bucket_name,
+            'output_bucket': output_bucket,
+            'processed_key': processed_key,
+            'original_width': original_size[0],
+            'original_height': original_size[1],
+            'processed_width': image.size[0],
+            'processed_height': image.size[1],
+            'timestamp': int(time.time())
+        })
+        print("Metadata inserted successfully in DynamoDB.")
+        
+        return {
+            'statusCode': 200,
+            'body': json.dumps({'message': 'Image processed successfully!'})
+        }
+
+    except Exception as e:
+        print("Error processing image:", str(e))
+        return {
+            'statusCode': 500,
+            'body': json.dumps({'error': str(e)})
+        }
+
+  Step 6: Add S3 Trigger
+
+Go to your input bucket → Properties → Event Notifications → Create event.
+
+Select event type: All object create events.
+
+Choose Destination → Lambda → image-processor-lambda.
+
+Save and verify trigger is active.
+
+🧪 Step 7: Test End-to-End
+
+Upload an image to your input bucket.
+
+Check:
+
+Processed image in image-output-bucket/processed/
+
+Metadata in DynamoDB ImageMetadata
+
+Logs in CloudWatch (should show original/processed dimensions).
+
+   Expected Output:
+
+Lambda resizes the image.
+
+Saves processed image in the output bucket.
+
+Inserts metadata into DynamoDB.
+
+CloudWatch shows execution trace.
+
