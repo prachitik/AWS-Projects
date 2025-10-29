@@ -17,12 +17,12 @@ When an image is uploaded to the input S3 bucket, a Lambda function is automatic
 4. Store image metadata (dimensions, size, timestamps) in DynamoDB
 
 ### Architecture Components
-AWS Service	Purpose
-Amazon S3 (Input Bucket) - Stores original images uploaded by the user. Triggers Lambda on object creation.
-AWS Lambda (image-processor-lambda) - Processes images using Pillow, saves thumbnails, and writes metadata.
-Amazon S3 (Output Bucket) -	Stores processed images under the processed/ folder.
-Amazon DynamoDB (ImageMetadata)	- Stores metadata of processed images (original/processed dimensions, size, timestamps).
-AWS IAM	- Provides Lambda permissions to access S3 and DynamoDB.
+AWS Service	|  Purpose
+1. Amazon S3 (Input Bucket) - Stores original images uploaded by the user. Triggers Lambda on object creation.
+2. AWS Lambda (image-processor-lambda) - Processes images using Pillow, saves thumbnails, and writes metadata.
+3. Amazon S3 (Output Bucket) -	Stores processed images under the processed/ folder.
+4. Amazon DynamoDB (ImageMetadata)	- Stores metadata of processed images (original/processed dimensions, size, timestamps).
+5. AWS IAM	- Provides Lambda permissions to access S3 and DynamoDB.
 
 ### Workflow
 
@@ -62,7 +62,7 @@ AWS IAM	- Provides Lambda permissions to access S3 and DynamoDB.
 
 
 **Lambda Function Code (image-processor-lambda)**
-lambda_function.py
+``Refer lambda_function.py``
 
 **Example Output**
 - Input:
@@ -116,41 +116,42 @@ Metadata stored successfully in DynamoDB.
 
 - Enable user uploads through a web interface
 
-Step-by-Step Project Setup
-   Step 1: Create S3 Buckets
+### Step-by-Step Project Setup
+   #### Step 1: Create S3 Buckets
 
-Create two buckets in the same region:
+1. Create two buckets in the same region:
 
-image-input-bucket
+2. image-input-bucket
 
-image-output-bucket
+3. image-output-bucket
 
-Keep Block all public access enabled.
+4. Keep Block all public access enabled.
 
-   Step 2: Create IAM Role for Lambda
+#### Step 2: Create IAM Role for Lambda
 
-Create a role LambdaExecutionRole with the following policies:
+1. Create a role LambdaExecutionRole with the following policies:
 
-AmazonS3FullAccess
+    - AmazonS3FullAccess
 
-AmazonDynamoDBFullAccess
+    - AmazonDynamoDBFullAccess
 
-CloudWatchLogsFullAccess
+    - CloudWatchLogsFullAccess
 
-   Step 3: Create DynamoDB Table
+#### Step 3: Create DynamoDB Table
 
-Create a table:
+1. Create a table:
 
-Name: ImageMetadata
+    Name: ImageMetadata
 
-Partition key: image_name (String)
+    Partition key: image_name (String)
 
-Billing mode: On-demand
+    Billing mode: On-demand
 
-   Step 4: Build and Publish Pillow Lambda Layer
+#### Step 4: Build and Publish Pillow Lambda Layer
 
-SSH into your EC2 instance (Amazon Linux 2023):
-
+1. SSH into your EC2 instance (Amazon Linux 2023):
+   
+```
 mkdir lambda_pillow_layer && cd lambda_pillow_layer
 pip install pillow==10.2.0 -t python/
 zip -r pillow_layer.zip python
@@ -159,11 +160,11 @@ aws lambda publish-layer-version \
   --zip-file fileb://pillow_layer.zip \
   --compatible-runtimes python3.9 \
   --region us-east-2
+```
 
+2. Copy the Layer ARN from the output.
 
-Copy the Layer ARN from the output.
-
-  Step 5: Create the Lambda Function
+#### Step 5: Create the Lambda Function
 
 Name: image-processor-lambda
 
@@ -173,103 +174,38 @@ Execution Role: LambdaExecutionRole
 
 Layer: Add your published Pillow layer
 
-Lambda Function Code:
+Lambda Function Code: ``Refer lambda_function.py``
 
-import boto3
-import os
-from PIL import Image
-from io import BytesIO
-import json
-import time
 
-s3 = boto3.client('s3')
-dynamodb = boto3.resource('dynamodb')
-table = dynamodb.Table('ImageMetadata')
+#### Step 6: Add S3 Trigger
 
-def lambda_handler(event, context):
-    try:
-        print("Received event:", json.dumps(event))
-        record = event['Records'][0]
-        bucket_name = record['s3']['bucket']['name']
-        object_key = record['s3']['object']['key']
-        
-        print(f"Processing file: {object_key} from bucket: {bucket_name}")
-        
-        # Download image
-        response = s3.get_object(Bucket=bucket_name, Key=object_key)
-        image_data = response['Body'].read()
-        image = Image.open(BytesIO(image_data))
-        original_size = image.size
-        print(f"Original size: {original_size}")
-        
-        # Resize
-        image.thumbnail((128, 128))
-        processed_key = f"processed/thumb_{os.path.basename(object_key)}"
-        print(f"Processed image path: {processed_key}")
-        
-        # Upload to output bucket
-        output_bucket = "image-output-bucket"
-        buffer = BytesIO()
-        image.save(buffer, format=image.format)
-        buffer.seek(0)
-        s3.put_object(Bucket=output_bucket, Key=processed_key, Body=buffer)
-        print(f"Processed image uploaded to {output_bucket}/{processed_key}")
-        
-        # Store metadata
-        table.put_item(Item={
-            'image_name': os.path.basename(object_key),
-            'bucket': bucket_name,
-            'output_bucket': output_bucket,
-            'processed_key': processed_key,
-            'original_width': original_size[0],
-            'original_height': original_size[1],
-            'processed_width': image.size[0],
-            'processed_height': image.size[1],
-            'timestamp': int(time.time())
-        })
-        print("Metadata inserted successfully in DynamoDB.")
-        
-        return {
-            'statusCode': 200,
-            'body': json.dumps({'message': 'Image processed successfully!'})
-        }
+1. Go to your input bucket → Properties → Event Notifications → Create event.
 
-    except Exception as e:
-        print("Error processing image:", str(e))
-        return {
-            'statusCode': 500,
-            'body': json.dumps({'error': str(e)})
-        }
+2. Select event type: All object create events.
 
-  Step 6: Add S3 Trigger
+3. Choose Destination → Lambda → image-processor-lambda.
 
-Go to your input bucket → Properties → Event Notifications → Create event.
+4. Save and verify trigger is active.
 
-Select event type: All object create events.
+ #### Step 7: Test End-to-End
 
-Choose Destination → Lambda → image-processor-lambda.
+1. Upload an image to your input bucket.
 
-Save and verify trigger is active.
+2. Check:
 
-🧪 Step 7: Test End-to-End
+ -- Processed image in image-output-bucket/processed/
 
-Upload an image to your input bucket.
+-- Metadata in DynamoDB ImageMetadata
 
-Check:
+-- Logs in CloudWatch (should show original/processed dimensions).
 
-Processed image in image-output-bucket/processed/
+### Expected Output:
 
-Metadata in DynamoDB ImageMetadata
+- Lambda resizes the image.
 
-Logs in CloudWatch (should show original/processed dimensions).
+- Saves processed image in the output bucket.
 
-   Expected Output:
+- Inserts metadata into DynamoDB.
 
-Lambda resizes the image.
-
-Saves processed image in the output bucket.
-
-Inserts metadata into DynamoDB.
-
-CloudWatch shows execution trace.
+- CloudWatch shows execution trace.
 
