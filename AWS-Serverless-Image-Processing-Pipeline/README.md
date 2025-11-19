@@ -168,11 +168,11 @@ Lambda Function Code: ``Refer lambda_function.py``
 
 2. Check:
 
- -- Processed image in image-output-bucket/processed/
+ - Processed image in image-output-bucket/processed/
 
--- Metadata in DynamoDB ImageMetadata
+- Metadata in DynamoDB ImageMetadata
 
--- Logs in CloudWatch (should show original/processed dimensions).
+- Logs in CloudWatch (should show original/processed dimensions).
 
 ### Expected Output:
 
@@ -184,7 +184,7 @@ Lambda Function Code: ``Refer lambda_function.py``
 
 - CloudWatch shows execution trace.
 
-###Troubleshooting and Fixes
+### Troubleshooting and Fixes
 | Issue                                                                                           | Root Cause                                             | Resolution                                                                     |
 | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------ |
 | ❌ SSH timeout to EC2                                                                            | NACL inbound/outbound rules not allowing port 22       | Added SSH (22), HTTP (80), HTTPS (443), and ephemeral ports (1024–65535) rules |
