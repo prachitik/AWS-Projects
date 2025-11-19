@@ -1,20 +1,12 @@
 ## AWS Serverless Image Processing Pipeline
 
 A fully serverless image-processing pipeline built using AWS Lambda, Amazon S3, and Amazon DynamoDB.
-This project automatically processes uploaded images — generating thumbnails, storing processed images in an output bucket, and recording metadata in DynamoDB.
 
 ### Overview
+This project automatically resizes and processes images uploaded to an Amazon S3 input bucket, stores the processed versions in an output bucket, and logs metadata (such as image dimensions and timestamps) in Amazon DynamoDB — all powered by AWS Lambda and the Pillow library.
 
-This project demonstrates an event-driven serverless architecture using AWS services.
-When an image is uploaded to the input S3 bucket, a Lambda function is automatically triggered to:
+This project demonstrates a scalable, event-driven serverless architecture using multiple AWS services working together.
 
-1. Retrieve the uploaded image
-
-2. Resize it (e.g., generate a thumbnail) using the Pillow library
-
-3. Save the processed image in the output S3 bucket
-
-4. Store image metadata (dimensions, size, timestamps) in DynamoDB
 
 ### Architecture Components
 AWS Service	|  Purpose
@@ -96,56 +88,39 @@ Processed image size: 200x113
 Metadata stored successfully in DynamoDB.
 ```
 
-### Key Learnings
 
-- Event-driven architecture with S3 triggers
 
-- Image manipulation using Pillow in Lambda layers
-
-- Metadata management via DynamoDB
-
-- End-to-end serverless design pattern
-
-### Future Enhancements
-
-- Add SNS or SES notification after processing
-
-- Include additional image filters (e.g., grayscale, compression)
-
-- Add API Gateway to trigger Lambda manually
-
-- Enable user uploads through a web interface
 
 ### Step-by-Step Project Setup
    #### Step 1: Create S3 Buckets
 
-1. Create two buckets in the same region:
+  Create two buckets in the same region:
 
-2. image-input-bucket
+    image-input-bucket
 
-3. image-output-bucket
+    image-output-bucket
 
-4. Keep Block all public access enabled.
+  Keep Block all public access enabled.
 
 #### Step 2: Create IAM Role for Lambda
 
 1. Create a role LambdaExecutionRole with the following policies:
 
-    - AmazonS3FullAccess
+AmazonS3FullAccess
 
-    - AmazonDynamoDBFullAccess
+AmazonDynamoDBFullAccess
 
-    - CloudWatchLogsFullAccess
+CloudWatchLogsFullAccess
 
 #### Step 3: Create DynamoDB Table
 
-1. Create a table:
+Create a table:
 
-    Name: ImageMetadata
+Name: ImageMetadata
 
-    Partition key: image_name (String)
+Partition key: image_name (String)
 
-    Billing mode: On-demand
+Billing mode: On-demand
 
 #### Step 4: Build and Publish Pillow Lambda Layer
 
@@ -209,3 +184,23 @@ Lambda Function Code: ``Refer lambda_function.py``
 
 - CloudWatch shows execution trace.
 
+###Troubleshooting and Fixes
+| Issue                                                                                           | Root Cause                                             | Resolution                                                                     |
+| ----------------------------------------------------------------------------------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------ |
+| ❌ SSH timeout to EC2                                                                            | NACL inbound/outbound rules not allowing port 22       | Added SSH (22), HTTP (80), HTTPS (443), and ephemeral ports (1024–65535) rules |
+| ❌ `InvalidSignatureException` when publishing layer                                             | IAM not configured properly on EC2                     | Attached proper IAM role and verified token-based metadata access              |
+| ❌ `cannot import name '_imaging'`                                                               | Pillow version mismatch between EC2 and Lambda runtime | Rebuilt layer for Python 3.9 runtime                                           |
+| ❌ `An error occurred (ValidationException): Missing key image_name`                             | DynamoDB table required partition key missing          | Added `'image_name'` attribute in `put_item()`                                 |
+| ⚠️ Lambda returned `‘Records’` error on test                                                    | Event test JSON did not match S3 trigger structure     | Triggered via real S3 upload event instead of console test                     |
+| ✅ **Final Fix:** All runtime, permissions, and event configurations aligned — system functional |                                                        |                                                                                |
+
+
+### Key Learnings
+
+- Event-driven architecture with S3 triggers
+
+- Image manipulation using Pillow in Lambda layers
+
+- Metadata management via DynamoDB
+
+- End-to-end serverless design pattern
