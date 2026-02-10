@@ -1,0 +1,1 @@
+{"statusCode": 200, "headers": {}, "body": "{\"orderId\": \"order-127\", \"orderItems\": [{\"itemId\": \"item-2\", \"price\": 14.99, \"quantity\": 2}], \"orderTime\": \"2025-12-16T03:11:26Z\", \"restaurantId\": \"rest-455\", \"status\": \"PLACED\", \"totalAmount\": 29.99}"}

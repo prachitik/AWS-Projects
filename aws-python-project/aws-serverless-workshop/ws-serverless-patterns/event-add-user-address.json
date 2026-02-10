@@ -1,0 +1,10 @@
+{
+  "body": "{\"addressLine1\":\"1 Main St\",\"city\":\"San Jose\",\"state\":\"CA\",\"postalCode\":\"95134\"}",
+  "requestContext": {
+    "authorizer": {
+      "claims": {
+        "sub": "user-789"
+      }
+    }
+  }
+}

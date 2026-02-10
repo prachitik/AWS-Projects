@@ -1,0 +1,1 @@
+{"statusCode": 200, "body": "{\"name\": \"Alice Johnson\", \"email\": \"alice@example.com\", \"username\": \"alice123\", \"timestamp\": \"2025-12-11T03:20:13.964424\", \"userid\": \"4ef87e13-d640-11f0-9607-1db323f6bff2\"}", "headers": {"Content-Type": "application/json", "Access-Control-Allow-Origin": "*"}}
