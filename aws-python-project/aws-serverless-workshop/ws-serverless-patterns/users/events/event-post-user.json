@@ -1,0 +1,16 @@
+{
+  "resource": "/users",
+  "path": "/users",
+  "httpMethod": "POST",
+  "headers": null,
+  "multiValueHeaders": null,
+  "queryStringParameters": null,
+  "multiValueQueryStringParameters": null,
+  "pathParameters": null,
+  "stageVariables": null,
+  "requestContext": {
+    "requestId": "a3f5a2c1-91b0-4c08-9df1-8b20a7b4b102"
+  },
+  "body": "{\"name\": \"Alice Johnson\", \"email\": \"alice@example.com\", \"username\": \"alice123\"}",
+  "isBase64Encoded": false
+}
